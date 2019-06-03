@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Downloader</string>
+    <string name="api_host">https://www.google.com</string>
+</resources>
