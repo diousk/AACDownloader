@@ -1,4 +1,4 @@
-package com.kingkonglive.android.utils.injection
+package com.example.downloader.di.injection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

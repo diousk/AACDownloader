@@ -62,5 +62,5 @@ object FileUtils {
         inputStream.close()
     }
 
-    const val DEFAULT_BUFFER = 4096
+    private const val DEFAULT_BUFFER = 8192
 }

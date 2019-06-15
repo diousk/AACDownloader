@@ -18,69 +18,33 @@ import java.io.File
 import retrofit2.adapter.rxjava2.Result.response
 import java.lang.RuntimeException
 import androidx.work.OneTimeWorkRequest
+import com.example.downloader.Data
+import com.example.downloader.worker.DownloadWorker
 
 
-
-
-class MainViewModel(
-    private val downloadApi: DownloadApi
-) : ViewModel() {
+class MainViewModel : ViewModel() {
     val compositeDisposable = CompositeDisposable()
 
-    fun download(url: String) {
-        val filePath = FileUtils.getSavePath(url)
-        Timber.d("filePath $filePath")
-        val file = File(FileUtils.getSavePath(url))
-        val disposable = downloadApi.download(url)
-            .subscribe({
-                Timber.d("response success, thread : ${Thread.currentThread().name}")
-                saveToFile(it, filePath)
-            }, {
-                Timber.d("error $it")
-            })
-        compositeDisposable.add(disposable)
-    }
-
-    var sub: Subscription? = null
-    fun simulateManyTask() {
-        val intArray = IntArray(200) { it }.toTypedArray().toList()
-
-        Flowable.fromIterable(intArray)
-            .subscribeOn(Schedulers.io())
-            .onBackpressureBuffer()
-            .doOnNext {
-                Timber.d("on sleep $it")
-                Thread.sleep(1000)
+    init {
+        WorkManager.getInstance().getWorkInfosForUniqueWorkLiveData(DownloadWorker.TAG)
+            .observeForever {
+                it.forEachIndexed { index, workInfo ->
+                    Timber.d("state of worker: ${index}, ${workInfo.outputData.getString("url")}, ${workInfo.state}")
+                }
             }
-            .observeOn(Schedulers.computation(), true, 1)
-            .subscribe({
-                Timber.d("on next $it")
-            }, {
-                Timber.d("on error $it")
-            }, {
-                Timber.d("on done")
-                // or remove live data observer here?
-            }, {
-                Timber.d("on sub")
-                sub = it
-//                sub?.request(3)
-            })
-
-//        val cacheCleanupTask = OneTimeWorkRequest.Builder(MyCacheCleanupWorker::class.java!!)
-//            .addTag("cleanup")
-//            .build()
-//        WorkManager.getInstance().getWorkInfosByTagLiveData().observeForever {
-//           // if all finished, remove observer
-//            WorkManager.getInstance().enqueueUniqueWork()
-//            it[0].
-//        }
     }
 
-    fun req() {
-        sub?.request(1)
+    fun download(url: String) {
+        Timber.d("schedule download worker")
+        DownloadWorker.schedule(WorkManager.getInstance(), Data.sampleUrls.toMutableList())
+    }
+
+    fun cancel() {
+        WorkManager.getInstance().cancelUniqueWork(DownloadWorker.TAG)
     }
 
     override fun onCleared() {
         compositeDisposable.dispose()
+        WorkManager.getInstance().pruneWork()
     }
 }

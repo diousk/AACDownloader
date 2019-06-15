@@ -1,7 +1,6 @@
 package com.example.downloader.base
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.kingkonglive.android.base.RxSchedulerRule
 import net.lachlanmckee.timberjunit.TimberTestRule
 import org.junit.Rule
 

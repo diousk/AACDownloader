@@ -1,4 +1,4 @@
-package com.kingkonglive.android.base
+package com.example.downloader.base
 
 import io.reactivex.android.plugins.RxAndroidPlugins
 import io.reactivex.plugins.RxJavaPlugins

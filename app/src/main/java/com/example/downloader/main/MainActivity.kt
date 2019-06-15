@@ -23,9 +23,8 @@ class MainActivity : DaggerAppCompatActivity() {
             viewModel.download(sampleUrl)
         }
 
-        delete.setOnClickListener {
-            viewModel.req()
+        cancel.setOnClickListener {
+            viewModel.cancel()
         }
-        viewModel.simulateManyTask()
     }
 }

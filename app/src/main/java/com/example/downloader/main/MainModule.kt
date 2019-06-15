@@ -2,7 +2,7 @@ package com.example.downloader.main
 
 import androidx.lifecycle.ViewModel
 import com.example.downloader.api.DownloadApi
-import com.kingkonglive.android.utils.injection.ViewModelKey
+import com.example.downloader.di.injection.ViewModelKey
 import dagger.Module
 import dagger.Provides
 import dagger.multibindings.IntoMap
@@ -12,8 +12,8 @@ class MainModule {
     @Provides
     @IntoMap
     @ViewModelKey(MainViewModel::class)
-    fun provideMainViewModel(downloadApi: DownloadApi) :ViewModel {
-        return MainViewModel(downloadApi)
+    fun provideMainViewModel() :ViewModel {
+        return MainViewModel()
     }
 
 }
