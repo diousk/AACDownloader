@@ -29,7 +29,10 @@ class MainViewModel : ViewModel() {
         WorkManager.getInstance().getWorkInfosForUniqueWorkLiveData(DownloadWorker.TAG)
             .observeForever {
                 it.forEachIndexed { index, workInfo ->
-                    Timber.d("state of worker: ${index}, ${workInfo.outputData.getString("url")}, ${workInfo.state}")
+                    Timber.d("worker: ${index}, " +
+                            "${workInfo.outputData.getString("url")}, " +
+                            "${workInfo.state}, " +
+                            "${workInfo.tags}")
                 }
             }
     }

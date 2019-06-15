@@ -62,12 +62,14 @@ class DownloadWorker(
             // TODO: we should use another worker to check if all urls downloaded
             val beginRequest = OneTimeWorkRequest.Builder(DownloadWorker::class.java)
                 .setInputData(workDataOf("urls" to urls.toTypedArray()))
+                .addTag("beginTag")
                 .build()
 
             val workRequests = urls.map { url ->
                 Timber.d("url - $url")
                 OneTimeWorkRequest.Builder(DownloadWorker::class.java)
                     .setInputData(workDataOf("myurl" to url))
+                    .addTag("downloadTag")
                     .build()
             }
 
