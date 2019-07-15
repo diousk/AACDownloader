@@ -2,24 +2,15 @@ package com.example.downloader.main
 
 import androidx.lifecycle.ViewModel
 import androidx.work.WorkManager
-import androidx.work.WorkRequest
-import com.example.downloader.FileUtils
-import com.example.downloader.FileUtils.saveToFile
-import com.example.downloader.api.DownloadApi
-import io.reactivex.BackpressureOverflowStrategy
-import io.reactivex.Flowable
-import io.reactivex.android.schedulers.AndroidSchedulers
+import com.example.downloader.*
+import com.example.downloader.worker.DownloadWorker
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import io.reactivex.Single
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
-import okhttp3.ResponseBody
-import org.reactivestreams.Subscription
 import timber.log.Timber
-import java.io.File
-import retrofit2.adapter.rxjava2.Result.response
-import java.lang.RuntimeException
-import androidx.work.OneTimeWorkRequest
-import com.example.downloader.Data
-import com.example.downloader.worker.DownloadWorker
 
 
 class MainViewModel : ViewModel() {
@@ -29,17 +20,40 @@ class MainViewModel : ViewModel() {
         WorkManager.getInstance().getWorkInfosForUniqueWorkLiveData(DownloadWorker.TAG)
             .observeForever {
                 it.forEachIndexed { index, workInfo ->
-                    Timber.d("worker: ${index}, " +
-                            "${workInfo.outputData.getString("url")}, " +
-                            "${workInfo.state}, " +
-                            "${workInfo.tags}")
+                    Timber.d(
+                        "worker: ${index}, " +
+                                "${workInfo.state}, " +
+                                "${workInfo.tags}"
+                    )
                 }
             }
     }
 
-    fun download(url: String) {
-        Timber.d("schedule download worker")
-        DownloadWorker.schedule(WorkManager.getInstance(), Data.sampleUrls.toMutableList())
+    fun download(jsonData: String) {
+        val typeData = Types.newParameterizedType(List::class.java, Resource::class.java)
+        val giftAdapter = Moshi.Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+            .adapter<List<Resource>>(typeData)
+
+        val disposable = Single.just(jsonData)
+            .subscribeOn(Schedulers.io())
+            .map { giftAdapter.fromJson(it) }
+            .map { list ->
+                val giftResourceList = list.filter { !it.resourceUrl.isNullOrEmpty() }
+                val giftResourceListSize = giftResourceList.size
+                val indexedList = MutableList(giftResourceListSize) { index ->
+                    ResourceWorkData(index+1, giftResourceListSize, giftResourceList[index])
+                }
+                indexedList
+            }
+            .subscribe({
+                Timber.d("schedule download worker")
+                DownloadWorker.schedule(WorkManager.getInstance(), it)
+            }, {
+                Timber.d("schedule download worker err: $it")
+            })
+        compositeDisposable.add(disposable)
     }
 
     fun cancel() {
