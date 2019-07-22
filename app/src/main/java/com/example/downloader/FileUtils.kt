@@ -15,8 +15,8 @@ import android.text.TextUtils
 
 
 object FileUtils {
-    lateinit var filesDirPath: String
-    lateinit var cacheDirPath: String
+
+    private const val DEFAULT_READ_BUFFER = 8192
 
     fun checkMD5(md5: String, updateFile: File?): Boolean {
         if (TextUtils.isEmpty(md5) || updateFile == null) {
@@ -53,10 +53,10 @@ object FileUtils {
             return null
         }
 
-        val buffer = ByteArray(DEFAULT_BUFFER)
-        try {
+        val buffer = ByteArray(DEFAULT_READ_BUFFER)
+        return inputStream.use { input ->
             while (true) {
-                val read = inputStream.read(buffer)
+                val read = input.read(buffer)
                 if (read == -1) {
                     break
                 }
@@ -64,24 +64,14 @@ object FileUtils {
             }
             val md5sum = digest.digest()
             val bigInt = BigInteger(1, md5sum)
-            var output = bigInt.toString(16)
+            val output = bigInt.toString(16)
             // Fill to 32 chars
-            output = String.format("%32s", output).replace(' ', '0')
-            return output
-        } catch (e: IOException) {
-            throw RuntimeException("Unable to process file for MD5: $e")
-        } finally {
-            try {
-                inputStream.close()
-            } catch (e: IOException) {
-                Timber.e("Exception on closing MD5 input stream: $e")
-            }
-
+            String.format("%32s", output).replace(' ', '0')
         }
     }
 
     fun saveResponseBodyToFile(body: ResponseBody, filePath: String, isInterrupted: () -> Boolean): Boolean {
-        val buffer = ByteArray(DEFAULT_BUFFER)
+        val buffer = ByteArray(DEFAULT_READ_BUFFER)
         val totalBytes = body.contentLength()
         val inputStream: InputStream = body.byteStream()
         val outputStream: OutputStream = FileOutputStream(File(filePath))
@@ -130,5 +120,5 @@ object FileUtils {
         return success
     }
 
-    private const val DEFAULT_BUFFER = 8192
+
 }

@@ -13,8 +13,6 @@ class App: DaggerApplication() {
     lateinit var appInitializers: Lazy<AppInitializers>
     override fun onCreate() {
         super.onCreate()
-        FileUtils.filesDirPath = filesDir.absolutePath
-        FileUtils.cacheDirPath = cacheDir.absolutePath
         Timber.plant(Timber.DebugTree())
         appInitializers.get().init(this)
     }

@@ -14,6 +14,7 @@ import dagger.android.support.DaggerAppCompatActivity
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 
 class MainActivity : DaggerAppCompatActivity() {
@@ -29,7 +30,10 @@ class MainActivity : DaggerAppCompatActivity() {
         download.setOnClickListener {
             //            val sampleUrl = Data.sampleUrls[(0..Data.sampleUrls.size).random()]
             val jsonData = assets.readFile("res_simple.json")
-            viewModel.download(jsonData)
+            val folder = filesDir.absolutePath +
+                    File.separator +
+                    "resources"
+            viewModel.download(jsonData, folder)
         }
 
         cancel.setOnClickListener {

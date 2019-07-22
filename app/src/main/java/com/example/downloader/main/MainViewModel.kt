@@ -29,7 +29,7 @@ class MainViewModel : ViewModel() {
             }
     }
 
-    fun download(jsonData: String) {
+    fun download(jsonData: String, folderPath: String) {
         val typeData = Types.newParameterizedType(List::class.java, Resource::class.java)
         val giftAdapter = Moshi.Builder()
             .add(KotlinJsonAdapterFactory())
@@ -49,7 +49,7 @@ class MainViewModel : ViewModel() {
             }
             .subscribe({
                 Timber.d("schedule download worker")
-                DownloadWorker.schedule(WorkManager.getInstance(), it)
+                DownloadWorker.schedule(WorkManager.getInstance(), it, folderPath)
             }, {
                 Timber.d("schedule download worker err: $it")
             })

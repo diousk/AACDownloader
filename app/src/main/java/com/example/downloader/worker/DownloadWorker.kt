@@ -20,7 +20,7 @@ import javax.inject.Provider
 
 // resource download worker
 class DownloadWorker(
-    private val context: Context, params: WorkerParameters,
+    context: Context, params: WorkerParameters,
     private val resourceDao: ResourceDao,
     private val downloadApi: DownloadApi
 ) : RxWorker(context, params) {
@@ -30,6 +30,7 @@ class DownloadWorker(
         val resId = inputData.getInt(KEY_RES_ID, -1)
         val resUrl = inputData.getString(KEY_RES_URL)
         val resMd5 = inputData.getString(KEY_RES_MD5) ?: ""
+        val resFolder = inputData.getString(KEY_RES_FOLDER) ?: ""
         val resNumber = inputData.getInt(KEY_RES_NUMBER, 0)
         val totalNumber = inputData.getInt(KEY_RES_TOTAL_NUMBER, 0)
         val resourceWorkData = ResourceWorkData(resNumber, totalNumber, Resource(resId, resUrl, resMd5))
@@ -46,7 +47,7 @@ class DownloadWorker(
             return Single.just(Result.success())
         }
 
-        val file = File(getResourceFilePath(resId, resUrl))
+        val file = File(getResourceFilePath(resId, resFolder))
 
         // verify existing file or start download from network
         return verifyExistingResource(resourceDao, resourceWorkData)
@@ -114,12 +115,8 @@ class DownloadWorker(
         return resourceDao.insert(entity)
     }
 
-    private fun getResourceFilePath(resId: Int, resUrl: String): String {
-        val fileFolder = File(
-            context.filesDir.absolutePath +
-                    File.separator +
-                    FOLDER_NAME_RES
-        ).apply { mkdirs() }
+    private fun getResourceFilePath(resId: Int, folderPath: String): String {
+        val fileFolder = File(folderPath).apply { mkdirs() }
         return fileFolder.absolutePath + File.separator + resId
     }
 
@@ -136,16 +133,21 @@ class DownloadWorker(
         const val TAG = "DOWNLOAD_WORKER"
         private const val MAX_RETRY = 3
 
-        private const val FOLDER_NAME_RES = "resources"
         private const val KEY_RES_ID = "key_res_id"
         private const val KEY_RES_URL = "key_res_url"
         private const val KEY_RES_MD5 = "key_res_md5"
+        private const val KEY_RES_FOLDER = "key_res_folder_path"
         private const val KEY_RES_NUMBER = "key_res_no"
         private const val KEY_RES_TOTAL_NUMBER = "key_res_total"
 
-        fun schedule(workManager: WorkManager, resources: List<ResourceWorkData>, replace: Boolean = false) {
-            if (resources.isEmpty()) {
-                Timber.d("resources empty")
+        fun schedule(
+            workManager: WorkManager,
+            resources: List<ResourceWorkData>,
+            folderPath: String,
+            replace: Boolean = false
+        ) {
+            if (resources.isEmpty() || folderPath.isEmpty()) {
+                Timber.w("resources empty or folder path empty")
                 return
             }
 
@@ -163,7 +165,8 @@ class DownloadWorker(
                             KEY_RES_URL to resource.resData.resourceUrl,
                             KEY_RES_NUMBER to resource.resNumber,
                             KEY_RES_TOTAL_NUMBER to resource.totalNumber,
-                            KEY_RES_MD5 to resource.resData.resourceMd5
+                            KEY_RES_MD5 to resource.resData.resourceMd5,
+                            KEY_RES_FOLDER to folderPath
                         )
                     )
                     .setBackoffCriteria(BackoffPolicy.LINEAR, 1, TimeUnit.SECONDS)
@@ -179,34 +182,6 @@ class DownloadWorker(
             var continuation = workManager.beginUniqueWork(TAG, policy, first)
             workRequests.forEach { continuation = continuation.then(it) }
             continuation.enqueue()
-        }
-
-        fun scheduleOneshot(workManager: WorkManager, resource: ResourceWorkData) {
-            if (resource.resData.id <= 0) {
-                Timber.w("invalid resource id")
-                return
-            }
-
-            val data = workDataOf(
-                KEY_RES_ID to resource.resData.id,
-                KEY_RES_URL to resource.resData.resourceUrl,
-                KEY_RES_NUMBER to resource.resData,
-                KEY_RES_TOTAL_NUMBER to resource.totalNumber,
-                KEY_RES_MD5 to resource.resData.resourceMd5
-            )
-            val request = OneTimeWorkRequestBuilder<DownloadWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .setInputData(data)
-                .build()
-            workManager.enqueueUniqueWork(
-                TAG + resource.resData.id,
-                ExistingWorkPolicy.KEEP,
-                request
-            )
         }
     }
 }
